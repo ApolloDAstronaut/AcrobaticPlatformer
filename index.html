@@ -31,11 +31,11 @@
         }
         button:hover { background-color: #45a049; }
         input[type="text"] {
-            width: 300px; background-color: #333; border: 2px solid var(--dark-border);
+            width: 90%; background-color: #333; border: 2px solid var(--dark-border);
         }
         #editor-container { display: flex; gap: 20px; align-items: flex-start; }
-        #playlist-controls { background-color: var(--medium-bg); padding: 15px; border-radius: 8px; width: 250px; }
-        #playlist-levels-list { list-style-type: none; padding: 0; max-height: 250px; overflow-y: auto; }
+        #playlist-controls { background-color: var(--medium-bg); padding: 15px; border-radius: 8px; width: 250px; text-align: center; }
+        #playlist-levels-list { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; text-align: left;}
         #playlist-levels-list li {
             padding: 10px; margin-bottom: 5px; background: #333; border-radius: 4px; cursor: pointer;
             border-left: 4px solid transparent;
@@ -65,7 +65,11 @@
                 <ul id="playlist-levels-list"></ul>
                 <button onclick="addNewLevel()">Add New Level</button>
                 <button onclick="deleteSelectedLevel()">Delete Selected</button>
-            </div>
+                
+                <hr style="border-color: var(--dark-border); margin: 20px 0;">
+                <input type="text" id="playlist-key-importer" placeholder="Paste Playlist Key...">
+                <button onclick="importPlaylistToEditor()">Load Key to Editor</button>
+                </div>
             <div>
                 <canvas id="editor-canvas" width="800" height="480"></canvas>
                 <div id="editor-ui">
@@ -138,19 +142,17 @@
     }
 
     function selectLevelForEditing(index) {
-        if (currentEditingLevelIndex > -1) saveCurrentLevel(); // Save previous work
         if (index < 0 || index >= editorPlaylist.levels.length) {
             currentEditingLevelIndex = -1;
-            clearEditorCanvas();
+            drawEditor(); // Clear canvas
             return;
         }
         currentEditingLevelIndex = index;
-        loadLevelToEditor(editorPlaylist.levels[index]);
+        drawEditor(); // Redraw with the new level's data
         updateLevelListUI();
     }
 
     function addNewLevel() {
-        if (currentEditingLevelIndex > -1) saveCurrentLevel();
         editorPlaylist.levels.push({ p: [-1, -1], g: [-1, -1], w: [] });
         selectLevelForEditing(editorPlaylist.levels.length - 1);
     }
@@ -158,29 +160,15 @@
     function deleteSelectedLevel() {
         if (currentEditingLevelIndex < 0) return;
         editorPlaylist.levels.splice(currentEditingLevelIndex, 1);
-        if(editorPlaylist.levels.length === 0) {
-            clearEditorCanvas();
+        if (editorPlaylist.levels.length === 0) {
             currentEditingLevelIndex = -1;
+            drawEditor(); // Clear canvas
         } else {
             selectLevelForEditing(Math.max(0, currentEditingLevelIndex - 1));
         }
         updateLevelListUI();
     }
     
-    function saveCurrentLevel() {
-        if (currentEditingLevelIndex < 0) return;
-        // This is now handled implicitly by direct manipulation
-        // In a more complex app, you'd serialize canvas state back to the object here
-    }
-
-    function loadLevelToEditor(levelData) {
-        drawEditor();
-    }
-
-    function clearEditorCanvas() {
-        drawEditor();
-    }
-
     function updateLevelListUI() {
         const list = document.getElementById('playlist-levels-list');
         list.innerHTML = '';
@@ -232,7 +220,6 @@
 
         const level = editorPlaylist.levels[currentEditingLevelIndex];
 
-        // Universal clear for the spot
         const clearSpot = () => {
             level.w = level.w.filter(pos => pos[0] !== gridX || pos[1] !== gridY);
             if(level.p[0] === gridX && level.p[1] === gridY) level.p = [-1,-1];
@@ -258,10 +245,37 @@
     window.addEventListener('mouseup', () => isPainting = false);
     editorCanvas.addEventListener('mouseleave', () => isPainting = false);
 
-
     // --- KEY IMPORT / EXPORT ---
+
+    // ✨ NEW: Function to load a playlist key into the editor state
+    function importPlaylistToEditor() {
+        const keyInput = document.getElementById('playlist-key-importer');
+        const key = keyInput.value.trim();
+        if (!key) {
+            alert("Please paste a key into the 'Code' box first.");
+            return;
+        }
+        try {
+            const decoded = JSON.parse(atob(key));
+            if (decoded.type !== 'playlist' || !Array.isArray(decoded.data)) {
+                throw new Error("Invalid key type. Only Playlist Keys can be loaded here.");
+            }
+            // Load the data into the editor's state
+            editorPlaylist = { name: decoded.name, levels: decoded.data };
+            
+            // Update the UI to reflect the loaded playlist
+            document.getElementById('playlist-name').value = editorPlaylist.name;
+            selectLevelForEditing(0); // This will also update the level list UI
+            
+            keyInput.value = ''; // Clear the input
+            alert(`Playlist '${editorPlaylist.name}' loaded successfully!`);
+        } catch (e) {
+            alert("Invalid Playlist Key. Please check the code and try again.");
+            console.error(e);
+        }
+    }
+
     function exportPlaylistKey() {
-        if (currentEditingLevelIndex > -1) saveCurrentLevel();
         for(let i = 0; i < editorPlaylist.levels.length; i++) {
             const level = editorPlaylist.levels[i];
             if (level.p[0] === -1 || level.g[0] === -1) {
@@ -337,14 +351,12 @@
     }
 
     function updateGame() {
-        // Movement
         player.vx = 0;
         if (keys['ArrowLeft'] || keys['a']) player.vx = -MOVE_SPEED;
         if (keys['ArrowRight'] || keys['d']) player.vx = MOVE_SPEED;
         if ((keys['ArrowUp'] || keys['w'] || keys[' ']) && player.onGround) { player.vy = JUMP_FORCE; player.onGround = false; }
         player.vy += GRAVITY;
 
-        // X Collision
         player.x += player.vx;
         for (const wall of gameObjects) {
             if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x && player.y < wall.y + GRID_SIZE && player.y + player.height > wall.y) {
@@ -352,7 +364,6 @@
                 if (player.vx < 0) player.x = wall.x + GRID_SIZE;
             }
         }
-        // Y Collision
         player.y += player.vy;
         player.onGround = false;
         for (const wall of gameObjects) {
@@ -361,11 +372,9 @@
                 if (player.vy < 0) { player.y = wall.y + GRID_SIZE; player.vy = 0; }
             }
         }
-        // Goal Check
         if (player.x < gameGoalPos.x + GRID_SIZE && player.x + player.width > gameGoalPos.x && player.y < gameGoalPos.y + GRID_SIZE && player.y + player.height > gameGoalPos.y) {
             onLevelComplete();
         }
-        // Fall out of world
         if (player.y > gameCanvas.height) resetGame();
     }
 
