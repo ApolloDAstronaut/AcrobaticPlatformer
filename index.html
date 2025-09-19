@@ -16,6 +16,7 @@
             --player-color: #0096FF;
             --goal-color: #FFD700;
             --grid-color: #cccccc;
+            --spike-color: #FF0000; /* New color for spikes */
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -161,6 +162,7 @@
                 <div class="tool selected" id="tool-wall" onclick="selectTool('wall')">🧱 Wall</div>
                 <div class="tool" id="tool-player" onclick="selectTool('player')">👤 Player</div>
                 <div class="tool" id="tool-goal" onclick="selectTool('goal')">⭐ Goal</div>
+                <div class="tool" id="tool-spike" onclick="selectTool('spike')">🔺 Spikes</div>
                 <div class="tool" id="tool-erase" onclick="selectTool('erase')">❌ Erase</div>
             </div>
         </div>
@@ -207,7 +209,7 @@
     let currentEditingLevelIndex = -1;
 
     let player = { x: 0, y: 0, width: GRID_SIZE * 0.8, height: GRID_SIZE * 0.8, vx: 0, vy: 0, onGround: false };
-    let gameObjects = [], gameGoalPos = {}, gamePlayerStart = {};
+    let gameObjects = [], gameGoalPos = {}, gamePlayerStart = {}, gameSpikes = [];
     let currentPlaylist = { name: "", levels: [] };
     let currentLevelIndex = -1;
 
@@ -225,7 +227,7 @@
 
     // --- EDITOR LOGIC ---
     function startNewPlaylist() {
-        editorPlaylist = { name: "Untitled Playlist", levels: [{ p: [-1,-1], g: [-1,-1], w: [] }] };
+        editorPlaylist = { name: "Untitled Playlist", levels: [{ p: [-1,-1], g: [-1,-1], w: [], s: [] }] };
         document.getElementById('playlist-name').value = editorPlaylist.name;
         selectLevelForEditing(0);
         showScreen('editor-screen');
@@ -247,7 +249,7 @@
     }
 
     function addNewLevel() {
-        editorPlaylist.levels.push({ p: [-1, -1], g: [-1, -1], w: [] });
+        editorPlaylist.levels.push({ p: [-1, -1], g: [-1, -1], w: [], s: [] });
         selectLevelForEditing(editorPlaylist.levels.length - 1);
     }
     
@@ -298,6 +300,9 @@
         editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--platform-color');
         level.w.forEach(pos => editorCtx.fillRect(pos[0] * GRID_SIZE, pos[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE));
         
+        editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--spike-color');
+        level.s.forEach(pos => drawSpike(editorCtx, pos[0] * GRID_SIZE, pos[1] * GRID_SIZE, GRID_SIZE));
+
         if (level.p[0] !== -1) {
             editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--player-color');
             editorCtx.fillRect(level.p[0] * GRID_SIZE, level.p[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE);
@@ -319,6 +324,7 @@
 
         const clearSpot = () => {
             level.w = level.w.filter(pos => pos[0] !== gridX || pos[1] !== gridY);
+            level.s = level.s.filter(pos => pos[0] !== gridX || pos[1] !== gridY);
             if(level.p[0] === gridX && level.p[1] === gridY) level.p = [-1,-1];
             if(level.g[0] === gridX && level.g[1] === gridY) level.g = [-1,-1];
         }
@@ -334,6 +340,9 @@
         } else if (selectedTool === 'goal') {
             clearSpot();
             level.g = [gridX, gridY];
+        } else if (selectedTool === 'spike') {
+            clearSpot();
+            level.s.push([gridX, gridY]);
         }
         drawEditor();
     }
@@ -355,6 +364,12 @@
             if (decoded.type !== 'playlist' || !Array.isArray(decoded.data)) {
                 throw new Error("Invalid key type. Only Playlist Keys can be loaded here.");
             }
+            
+            // Backwards compatibility for old keys without spikes
+            decoded.data.forEach(level => {
+                if (!level.s) level.s = [];
+            });
+
             editorPlaylist = { name: decoded.name, levels: decoded.data };
             
             document.getElementById('playlist-name').value = editorPlaylist.name;
@@ -386,9 +401,14 @@
             const decoded = JSON.parse(atob(key));
             
             if (decoded.type === 'playlist') {
+                // Backwards compatibility for old keys without spikes
+                decoded.data.forEach(level => {
+                    if (!level.s) level.s = [];
+                });
                 currentPlaylist = { name: decoded.name, levels: decoded.data };
                 displayLevelSelector();
-            } else {
+            } else { // Handle old single-level key
+                if (!decoded.s) decoded.s = [];
                 currentPlaylist = { name: "Single Level", levels: [decoded] };
                 startLevel(0);
             }
@@ -419,7 +439,8 @@
         gamePlayerStart = { x: levelData.p[0] * GRID_SIZE, y: levelData.p[1] * GRID_SIZE };
         gameGoalPos = { x: levelData.g[0] * GRID_SIZE, y: levelData.g[1] * GRID_SIZE };
         gameObjects = levelData.w.map(pos => ({ x: pos[0] * GRID_SIZE, y: pos[1] * GRID_SIZE }));
-        
+        gameSpikes = (levelData.s || []).map(pos => ({ x: pos[0] * GRID_SIZE, y: pos[1] * GRID_SIZE }));
+
         document.getElementById('game-level-title').textContent = `${currentPlaylist.name} - Level ${index + 1}`;
         resetGame();
         showScreen('game-screen');
@@ -465,6 +486,14 @@
                 if (player.vy < 0) { player.y = wall.y + GRID_SIZE; player.vy = 0; }
             }
         }
+        // Spike Collision
+        for (const spike of gameSpikes) {
+            if (player.x < spike.x + GRID_SIZE && player.x + player.width > spike.x && player.y < spike.y + GRID_SIZE && player.y + player.height > spike.y) {
+                resetGame();
+                return; // Exit update loop immediately
+            }
+        }
+
         if (player.x < gameGoalPos.x + GRID_SIZE && player.x + player.width > gameGoalPos.x && player.y < gameGoalPos.y + GRID_SIZE && player.y + player.height > gameGoalPos.y) {
             onLevelComplete();
         }
@@ -479,6 +508,9 @@
         gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--platform-color');
         gameObjects.forEach(obj => gameCtx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE));
         
+        gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--spike-color');
+        gameSpikes.forEach(spike => drawSpike(gameCtx, spike.x, spike.y, GRID_SIZE));
+
         gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
         drawStar(gameCtx, gameGoalPos.x + GRID_SIZE / 2, gameGoalPos.y + GRID_SIZE / 2, GRID_SIZE / 2 * 0.9, 5);
 
@@ -497,6 +529,15 @@
             ctx.lineTo(x, y); rot += step;
         }
         ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.fill();
+    }
+
+    function drawSpike(ctx, x, y, size) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + size);
+        ctx.lineTo(x + size / 2, y);
+        ctx.lineTo(x + size, y + size);
+        ctx.closePath();
+        ctx.fill();
     }
 
     let animationFrameId;
@@ -540,3 +581,4 @@
     </script>
 </body>
 </html>
+
