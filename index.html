@@ -203,7 +203,6 @@
             const gridX = Math.floor(mouseX / GRID_SIZE) * GRID_SIZE;
             const gridY = Math.floor(mouseY / GRID_SIZE) * GRID_SIZE;
 
-            // Remove any object at the clicked location before placing a new one
             levelObjects = levelObjects.filter(obj => obj.x !== gridX || obj.y !== gridY);
             if (playerStart.x === gridX && playerStart.y === gridY) playerStart = {x: -1, y: -1};
             if (goalPos.x === gridX && goalPos.y === gridY) goalPos = {x: -1, y: -1};
@@ -215,7 +214,6 @@
             } else if (selectedTool === 'goal') {
                 goalPos = { x: gridX, y: gridY };
             }
-            // 'erase' is handled by the removal logic above
             drawEditor();
         });
         
@@ -231,7 +229,7 @@
                 w: levelObjects.map(obj => [obj.x / GRID_SIZE, obj.y / GRID_SIZE])
             };
             const jsonString = JSON.stringify(data);
-            const base64Key = btoa(jsonString); // Encode to Base64
+            const base64Key = btoa(jsonString);
             document.getElementById('key-output').textContent = base64Key;
         }
 
@@ -246,7 +244,7 @@
         
         function loadLevel(key) {
             try {
-                const jsonString = atob(key); // Decode from Base64
+                const jsonString = atob(key);
                 const data = JSON.parse(jsonString);
 
                 playerStart = { x: data.p[0] * GRID_SIZE, y: data.p[1] * GRID_SIZE };
@@ -272,21 +270,17 @@
         }
 
         function updateGame() {
-            // Player movement
             player.vx = 0;
             if (keys['ArrowLeft'] || keys['a']) player.vx = -MOVE_SPEED;
             if (keys['ArrowRight'] || keys['d']) player.vx = MOVE_SPEED;
 
-            // Player Jump Initiation
             if ((keys['ArrowUp'] || keys['w'] || keys[' ']) && player.onGround) {
                 player.vy = JUMP_FORCE;
                 player.onGround = false;
             }
 
-            // Apply gravity
             player.vy += GRAVITY;
 
-            // Horizontal collision
             player.x += player.vx;
             for (const wall of levelObjects) {
                 if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x &&
@@ -296,7 +290,6 @@
                 }
             }
 
-            // Vertical collision
             player.y += player.vy;
             player.onGround = false;
             for (const wall of levelObjects) {
@@ -314,14 +307,12 @@
                 }
             }
             
-            // Goal check
             if (player.x < goalPos.x + GRID_SIZE && player.x + player.width > goalPos.x &&
                 player.y < goalPos.y + GRID_SIZE && player.y + player.height > goalPos.y) {
                 alert("You win! 🎉");
                 showScreen('main-menu');
             }
 
-            // Fall out of world
             if (player.y > canvas.height) {
                 resetGame();
             }
@@ -330,15 +321,12 @@
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw walls
             ctx.fillStyle = '#8B4513';
             levelObjects.forEach(obj => {
                 ctx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE);
             });
-            // Draw goal
             ctx.font = `${GRID_SIZE}px sans-serif`;
             ctx.fillText('🏆', goalPos.x, goalPos.y + GRID_SIZE - 5);
-            // Draw player
             ctx.fillStyle = '#0096FF';
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
@@ -355,12 +343,16 @@
         
         window.addEventListener('keyup', (e) => {
             keys[e.key] = false;
-
-            // --- ✨ NEW: VARIABLE JUMP HEIGHT LOGIC ✨ ---
-            // If the player is moving upwards when they release the jump key...
             if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && player.vy < 0) {
-                // ...cut their upward velocity, resulting in a shorter jump.
-                player.vy *= 0.5; // You can adjust this value (e.g., to 0.4) for a more dramatic effect
+                player.vy *= 0.5;
+            }
+        });
+
+        // --- ✨ BUG FIX: Prevent sticky keys when window loses focus ---
+        window.addEventListener('blur', () => {
+            // Set all keys to false to stop movement
+            for (const key in keys) {
+                keys[key] = false;
             }
         });
 
