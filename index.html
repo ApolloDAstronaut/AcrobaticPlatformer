@@ -69,7 +69,8 @@
                 <hr style="border-color: var(--dark-border); margin: 20px 0;">
                 <input type="text" id="playlist-key-importer" placeholder="Paste Playlist Key...">
                 <button onclick="importPlaylistToEditor()">Load Key to Editor</button>
-                </div>
+
+            </div>
             <div>
                 <canvas id="editor-canvas" width="800" height="480"></canvas>
                 <div id="editor-ui">
@@ -101,7 +102,11 @@
 
     <script>
     // --- CONFIG ---
-    const GRID_SIZE = 40, GRAVITY = 0.5, JUMP_FORCE = -12, MOVE_SPEED = 5;
+    // ✨ Grid size is now smaller for more detail. Physics values are scaled to match.
+    const GRID_SIZE = 20;
+    const GRAVITY = 0.25;
+    const JUMP_FORCE = -6;
+    const MOVE_SPEED = 2.5;
 
     // --- DOM ELEMENTS ---
     const editorCanvas = document.getElementById('editor-canvas'), editorCtx = editorCanvas.getContext('2d');
@@ -246,8 +251,6 @@
     editorCanvas.addEventListener('mouseleave', () => isPainting = false);
 
     // --- KEY IMPORT / EXPORT ---
-
-    // ✨ NEW: Function to load a playlist key into the editor state
     function importPlaylistToEditor() {
         const keyInput = document.getElementById('playlist-key-importer');
         const key = keyInput.value.trim();
@@ -260,14 +263,12 @@
             if (decoded.type !== 'playlist' || !Array.isArray(decoded.data)) {
                 throw new Error("Invalid key type. Only Playlist Keys can be loaded here.");
             }
-            // Load the data into the editor's state
             editorPlaylist = { name: decoded.name, levels: decoded.data };
             
-            // Update the UI to reflect the loaded playlist
             document.getElementById('playlist-name').value = editorPlaylist.name;
-            selectLevelForEditing(0); // This will also update the level list UI
+            selectLevelForEditing(0);
             
-            keyInput.value = ''; // Clear the input
+            keyInput.value = '';
             alert(`Playlist '${editorPlaylist.name}' loaded successfully!`);
         } catch (e) {
             alert("Invalid Playlist Key. Please check the code and try again.");
@@ -292,10 +293,10 @@
             const key = document.getElementById('key-input').value.trim();
             const decoded = JSON.parse(atob(key));
             
-            if (decoded.type === 'playlist') { // It's a playlist
+            if (decoded.type === 'playlist') {
                 currentPlaylist = { name: decoded.name, levels: decoded.data };
                 displayLevelSelector();
-            } else { // Assume it's an old single-level key
+            } else {
                 currentPlaylist = { name: "Single Level", levels: [decoded] };
                 startLevel(0);
             }
