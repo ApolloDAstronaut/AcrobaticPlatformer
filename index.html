@@ -113,7 +113,7 @@
     <div id="game-screen" class="screen">
         <h1>Play Mode</h1>
         <canvas id="game-canvas" width="800" height="480"></canvas>
-        <p>Use Arrow Keys or WASD to move and jump. Reach the trophy! 🏆</p>
+        <p>Use Arrow Keys or WASD to move. Hold jump for more height. Reach the trophy! 🏆</p>
         <button onclick="showScreen('main-menu')">Back to Menu</button>
     </div>
 
@@ -121,7 +121,7 @@
         // --- Global Configuration ---
         const GRID_SIZE = 40;
         const GRAVITY = 0.5;
-        const JUMP_FORCE = -12;
+        const JUMP_FORCE = -12; // The initial upward force of the jump
         const MOVE_SPEED = 5;
         
         const canvas = document.getElementById('game-canvas');
@@ -276,6 +276,8 @@
             player.vx = 0;
             if (keys['ArrowLeft'] || keys['a']) player.vx = -MOVE_SPEED;
             if (keys['ArrowRight'] || keys['d']) player.vx = MOVE_SPEED;
+
+            // Player Jump Initiation
             if ((keys['ArrowUp'] || keys['w'] || keys[' ']) && player.onGround) {
                 player.vy = JUMP_FORCE;
                 player.onGround = false;
@@ -350,7 +352,17 @@
 
         // --- Event Listeners ---
         window.addEventListener('keydown', (e) => keys[e.key] = true);
-        window.addEventListener('keyup', (e) => keys[e.key] = false);
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+
+            // --- ✨ NEW: VARIABLE JUMP HEIGHT LOGIC ✨ ---
+            // If the player is moving upwards when they release the jump key...
+            if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && player.vy < 0) {
+                // ...cut their upward velocity, resulting in a shorter jump.
+                player.vy *= 0.5; // You can adjust this value (e.g., to 0.4) for a more dramatic effect
+            }
+        });
 
         // --- Initial Load ---
         showScreen('main-menu');
