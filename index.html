@@ -3,402 +3,403 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid Platformer Editor</title>
+    <title>Platformer Playlist Creator</title>
     <style>
+        :root {
+            --primary-color: #4CAF50;
+            --dark-bg: #1a1a1a;
+            --medium-bg: #2a2a2a;
+            --dark-border: #555;
+            --text-color: #f0f0f0;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a;
-            color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
+            margin: 0; padding: 0; background-color: var(--dark-bg); color: var(--text-color);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden;
         }
         canvas {
-            background-color: #0d0d0d;
-            border: 2px solid #555;
-            cursor: crosshair;
+            background-color: #0d0d0d; border: 2px solid var(--dark-border); cursor: crosshair;
         }
         .screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
+            display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;
         }
-        .screen.active {
-            display: flex;
+        .screen.active { display: flex; }
+        h1, h2 { color: var(--primary-color); text-shadow: 2px 2px #000; }
+        button, input {
+            padding: 12px 20px; margin: 8px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;
+            background-color: var(--primary-color); color: white; transition: background-color 0.3s;
         }
-        h1 {
-            color: #4CAF50;
-            text-shadow: 2px 2px #000;
-        }
-        button, input[type="text"] {
-            padding: 12px 20px;
-            margin: 10px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
+        button:hover { background-color: #45a049; }
         input[type="text"] {
-            width: 300px;
-            background-color: #333;
-            border: 2px solid #555;
+            width: 300px; background-color: #333; border: 2px solid var(--dark-border);
         }
-        #editor-ui {
-            display: flex;
-            align-items: center;
-            margin-top: 15px;
+        #editor-container { display: flex; gap: 20px; align-items: flex-start; }
+        #playlist-controls { background-color: var(--medium-bg); padding: 15px; border-radius: 8px; width: 250px; }
+        #playlist-levels-list { list-style-type: none; padding: 0; max-height: 250px; overflow-y: auto; }
+        #playlist-levels-list li {
+            padding: 10px; margin-bottom: 5px; background: #333; border-radius: 4px; cursor: pointer;
+            border-left: 4px solid transparent;
         }
-        #editor-ui .tool {
-            padding: 10px;
-            margin: 0 5px;
-            border: 2px solid #555;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #editor-ui .tool.selected {
-            background-color: #4CAF50;
-            border-color: #fff;
-        }
-        #key-output {
-            margin-top: 15px;
-            width: 80%;
-            max-width: 600px;
-            padding: 10px;
-            background: #222;
-            border: 1px solid #444;
-            word-wrap: break-word;
-            min-height: 20px;
-            font-family: 'Courier New', Courier, monospace;
-        }
+        #playlist-levels-list li.selected { border-left-color: var(--primary-color); background: #444; }
+        #editor-ui { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+        #editor-ui .tool { padding: 10px; margin: 5px; border: 2px solid var(--dark-border); border-radius: 5px; cursor: pointer; }
+        #editor-ui .tool.selected { background-color: var(--primary-color); border-color: #fff; }
+        #key-output { margin-top: 15px; width: 80%; max-width: 800px; padding: 10px; background: #222; border: 1px solid #444; word-wrap: break-word; min-height: 20px; font-family: 'Courier New', monospace; }
+        #level-selector-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
     </style>
 </head>
 <body>
 
     <div id="main-menu" class="screen active">
-        <h1>Platformer Creator</h1>
-        <button onclick="showScreen('editor-screen')">Level Editor</button>
-        <input type="text" id="level-key-input" placeholder="Paste level key here...">
-        <button onclick="loadLevelFromInput()">Play Level</button>
+        <h1>Platformer Playlist Creator</h1>
+        <button onclick="startNewPlaylist()">Create New Playlist</button>
+        <input type="text" id="key-input" placeholder="Paste Level or Playlist Key...">
+        <button onclick="loadKeyFromInput()">Play</button>
     </div>
 
     <div id="editor-screen" class="screen">
-        <h1>Level Editor</h1>
-        <canvas id="editor-canvas" width="800" height="480"></canvas>
-        <div id="editor-ui">
-            <span>Tools:</span>
-            <div class="tool selected" id="tool-wall" onclick="selectTool('wall')">🧱 Wall</div>
-            <div class="tool" id="tool-player" onclick="selectTool('player')">👤 Player</div>
-            <div class="tool" id="tool-goal" onclick="selectTool('goal')">🏆 Goal</div>
-            <div class="tool" id="tool-erase" onclick="selectTool('erase')">❌ Erase</div>
-            <button onclick="exportLevelKey()">Export Key</button>
-            <button onclick="showScreen('main-menu')">Back to Menu</button>
+        <div id="editor-container">
+            <div id="playlist-controls">
+                <h2>Playlist Editor</h2>
+                <input type="text" id="playlist-name" placeholder="Playlist Name" onchange="updatePlaylistName()">
+                <ul id="playlist-levels-list"></ul>
+                <button onclick="addNewLevel()">Add New Level</button>
+                <button onclick="deleteSelectedLevel()">Delete Selected</button>
+            </div>
+            <div>
+                <canvas id="editor-canvas" width="800" height="480"></canvas>
+                <div id="editor-ui">
+                    <span>Tools:</span>
+                    <div class="tool selected" id="tool-wall" onclick="selectTool('wall')">🧱 Wall</div>
+                    <div class="tool" id="tool-player" onclick="selectTool('player')">👤 Player</div>
+                    <div class="tool" id="tool-goal" onclick="selectTool('goal')">🏆 Goal</div>
+                    <div class="tool" id="tool-erase" onclick="selectTool('erase')">❌ Erase</div>
+                </div>
+            </div>
         </div>
+        <button onclick="exportPlaylistKey()">Export Playlist Key</button>
+        <button onclick="showScreen('main-menu')">Back to Menu</button>
         <div id="key-output"></div>
     </div>
 
-    <div id="game-screen" class="screen">
-        <h1>Play Mode</h1>
-        <canvas id="game-canvas" width="800" height="480"></canvas>
-        <p>Use Arrow Keys or WASD to move. Hold jump for more height. Reach the trophy! 🏆</p>
+    <div id="level-selector-screen" class="screen">
+        <h1 id="playlist-title"></h1>
+        <div id="level-selector-grid"></div>
         <button onclick="showScreen('main-menu')">Back to Menu</button>
     </div>
 
+    <div id="game-screen" class="screen">
+        <h2 id="game-level-title"></h2>
+        <canvas id="game-canvas" width="800" height="480"></canvas>
+        <p>Use Arrow Keys or WASD to move. Hold jump for more height. Reach the trophy! 🏆</p>
+        <button onclick="showScreen('level-selector-screen')">Back to Level Select</button>
+    </div>
+
     <script>
-        // --- Global Configuration ---
-        const GRID_SIZE = 40;
-        const GRAVITY = 0.5;
-        const JUMP_FORCE = -12;
-        const MOVE_SPEED = 5;
+    // --- CONFIG ---
+    const GRID_SIZE = 40, GRAVITY = 0.5, JUMP_FORCE = -12, MOVE_SPEED = 5;
+
+    // --- DOM ELEMENTS ---
+    const editorCanvas = document.getElementById('editor-canvas'), editorCtx = editorCanvas.getContext('2d');
+    const gameCanvas = document.getElementById('game-canvas'), gameCtx = gameCanvas.getContext('2d');
+    const keyOutput = document.getElementById('key-output');
+
+    // --- STATE ---
+    let currentScreen = 'main-menu', selectedTool = 'wall', isPainting = false;
+    const keys = {};
+    
+    // Editor State
+    let editorPlaylist = { name: "Untitled Playlist", levels: [] };
+    let currentEditingLevelIndex = -1;
+
+    // Game State
+    let player = { x: 0, y: 0, width: GRID_SIZE * 0.8, height: GRID_SIZE * 0.8, vx: 0, vy: 0, onGround: false };
+    let gameObjects = [], gameGoalPos = {}, gamePlayerStart = {};
+    let currentPlaylist = { name: "", levels: [] };
+    let currentLevelIndex = -1;
+
+    // --- SCREEN NAVIGATION ---
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        currentScreen = screenId;
+    }
+
+    // --- EDITOR LOGIC ---
+    function startNewPlaylist() {
+        editorPlaylist = { name: "Untitled Playlist", levels: [{ p: [-1,-1], g: [-1,-1], w: [] }] };
+        document.getElementById('playlist-name').value = editorPlaylist.name;
+        selectLevelForEditing(0);
+        showScreen('editor-screen');
+    }
+    
+    function updatePlaylistName() {
+        editorPlaylist.name = document.getElementById('playlist-name').value || "Untitled Playlist";
+    }
+
+    function selectLevelForEditing(index) {
+        if (currentEditingLevelIndex > -1) saveCurrentLevel(); // Save previous work
+        if (index < 0 || index >= editorPlaylist.levels.length) {
+            currentEditingLevelIndex = -1;
+            clearEditorCanvas();
+            return;
+        }
+        currentEditingLevelIndex = index;
+        loadLevelToEditor(editorPlaylist.levels[index]);
+        updateLevelListUI();
+    }
+
+    function addNewLevel() {
+        if (currentEditingLevelIndex > -1) saveCurrentLevel();
+        editorPlaylist.levels.push({ p: [-1, -1], g: [-1, -1], w: [] });
+        selectLevelForEditing(editorPlaylist.levels.length - 1);
+    }
+    
+    function deleteSelectedLevel() {
+        if (currentEditingLevelIndex < 0) return;
+        editorPlaylist.levels.splice(currentEditingLevelIndex, 1);
+        if(editorPlaylist.levels.length === 0) {
+            clearEditorCanvas();
+            currentEditingLevelIndex = -1;
+        } else {
+            selectLevelForEditing(Math.max(0, currentEditingLevelIndex - 1));
+        }
+        updateLevelListUI();
+    }
+    
+    function saveCurrentLevel() {
+        if (currentEditingLevelIndex < 0) return;
+        // This is now handled implicitly by direct manipulation
+        // In a more complex app, you'd serialize canvas state back to the object here
+    }
+
+    function loadLevelToEditor(levelData) {
+        drawEditor();
+    }
+
+    function clearEditorCanvas() {
+        drawEditor();
+    }
+
+    function updateLevelListUI() {
+        const list = document.getElementById('playlist-levels-list');
+        list.innerHTML = '';
+        editorPlaylist.levels.forEach((level, index) => {
+            const li = document.createElement('li');
+            li.textContent = `Level ${index + 1}`;
+            if (index === currentEditingLevelIndex) li.classList.add('selected');
+            li.onclick = () => selectLevelForEditing(index);
+            list.appendChild(li);
+        });
+    }
+
+    function selectTool(tool) {
+        document.querySelectorAll('.tool').forEach(t => t.classList.remove('selected'));
+        document.getElementById(`tool-${tool}`).classList.add('selected');
+        selectedTool = tool;
+    }
+
+    function drawEditor() {
+        editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+        // Draw Grid
+        editorCtx.strokeStyle = '#404040'; editorCtx.lineWidth = 0.5;
+        for (let x = 0; x < editorCanvas.width; x += GRID_SIZE) { editorCtx.beginPath(); editorCtx.moveTo(x, 0); editorCtx.lineTo(x, editorCanvas.height); editorCtx.stroke(); }
+        for (let y = 0; y < editorCanvas.height; y += GRID_SIZE) { editorCtx.beginPath(); editorCtx.moveTo(0, y); editorCtx.lineTo(editorCanvas.width, y); editorCtx.stroke(); }
+        editorCtx.lineWidth = 1;
+
+        // Draw Objects from current level
+        if (currentEditingLevelIndex < 0) return;
+        const level = editorPlaylist.levels[currentEditingLevelIndex];
+        editorCtx.fillStyle = '#8B4513';
+        level.w.forEach(pos => editorCtx.fillRect(pos[0] * GRID_SIZE, pos[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE));
         
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const editorCanvas = document.getElementById('editor-canvas');
-        const editorCtx = editorCanvas.getContext('2d');
+        if (level.p[0] !== -1) {
+            editorCtx.fillStyle = 'rgba(0, 150, 255, 0.8)';
+            editorCtx.fillRect(level.p[0] * GRID_SIZE, level.p[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+        }
+        if (level.g[0] !== -1) {
+            editorCtx.font = `${GRID_SIZE}px sans-serif`;
+            editorCtx.fillText('🏆', level.g[0] * GRID_SIZE, level.g[1] * GRID_SIZE + GRID_SIZE - 5);
+        }
+    }
 
-        // --- State Management ---
-        let currentScreen = 'main-menu';
-        let levelObjects = [];
-        let playerStart = { x: -1, y: -1 };
-        let goalPos = { x: -1, y: -1 };
-        let selectedTool = 'wall';
-        let isPainting = false; // ✨ NEW: For click-and-drag painting
-        
-        let player = { x: 0, y: 0, width: GRID_SIZE * 0.8, height: GRID_SIZE * 0.8, vx: 0, vy: 0, onGround: false };
-        const keys = {};
+    function handleEditorAction(event) {
+        if (currentEditingLevelIndex < 0) return;
+        const rect = editorCanvas.getBoundingClientRect();
+        const gridX = Math.floor((event.clientX - rect.left) / GRID_SIZE);
+        const gridY = Math.floor((event.clientY - rect.top) / GRID_SIZE);
+        if (gridX < 0 || gridX >= editorCanvas.width / GRID_SIZE || gridY < 0 || gridY >= editorCanvas.height / GRID_SIZE) return;
 
-        // --- Screen Navigation ---
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            currentScreen = screenId;
-            if (screenId === 'editor-screen') {
-                drawEditor();
-            }
+        const level = editorPlaylist.levels[currentEditingLevelIndex];
+
+        // Universal clear for the spot
+        const clearSpot = () => {
+            level.w = level.w.filter(pos => pos[0] !== gridX || pos[1] !== gridY);
+            if(level.p[0] === gridX && level.p[1] === gridY) level.p = [-1,-1];
+            if(level.g[0] === gridX && level.g[1] === gridY) level.g = [-1,-1];
         }
 
-        // --- Level Editor Logic ---
-        function selectTool(tool) {
-            document.querySelectorAll('.tool').forEach(t => t.classList.remove('selected'));
-            document.getElementById(`tool-${tool}`).classList.add('selected');
-            selectedTool = tool;
+        if (selectedTool === 'erase') {
+            clearSpot();
+        } else if (selectedTool === 'wall') {
+            clearSpot();
+            level.w.push([gridX, gridY]);
+        } else if (selectedTool === 'player') {
+            clearSpot();
+            level.p = [gridX, gridY];
+        } else if (selectedTool === 'goal') {
+            clearSpot();
+            level.g = [gridX, gridY];
         }
+        drawEditor();
+    }
+    editorCanvas.addEventListener('mousedown', (e) => { isPainting = true; handleEditorAction(e); });
+    editorCanvas.addEventListener('mousemove', (e) => { if (isPainting) handleEditorAction(e); });
+    window.addEventListener('mouseup', () => isPainting = false);
+    editorCanvas.addEventListener('mouseleave', () => isPainting = false);
 
-        function drawGrid() {
-            // ✨ NEW: More detailed grid lines
-            editorCtx.strokeStyle = '#404040';
-            editorCtx.lineWidth = 0.5;
 
-            for (let x = 0; x < editorCanvas.width; x += GRID_SIZE) {
-                editorCtx.beginPath();
-                editorCtx.moveTo(x, 0);
-                editorCtx.lineTo(x, editorCanvas.height);
-                editorCtx.stroke();
-            }
-            for (let y = 0; y < editorCanvas.height; y += GRID_SIZE) {
-                editorCtx.beginPath();
-                editorCtx.moveTo(0, y);
-                editorCtx.lineTo(editorCanvas.width, y);
-                editorCtx.stroke();
-            }
-            editorCtx.lineWidth = 1; // Reset for any other potential stroke operations
-        }
-
-        function drawEditorObjects() {
-            editorCtx.fillStyle = '#8B4513';
-            levelObjects.forEach(obj => {
-                editorCtx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE);
-            });
-            if (playerStart.x !== -1) {
-                editorCtx.fillStyle = 'rgba(0, 150, 255, 0.8)';
-                editorCtx.fillRect(playerStart.x, playerStart.y, GRID_SIZE, GRID_SIZE);
-            }
-            if (goalPos.x !== -1) {
-                editorCtx.font = `${GRID_SIZE}px sans-serif`;
-                editorCtx.fillText('🏆', goalPos.x, goalPos.y + GRID_SIZE - 5);
-            }
-        }
-
-        function drawEditor() {
-            editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
-            drawGrid();
-            drawEditorObjects();
-        }
-
-        // --- ✨ NEW: Click-and-drag editor functionality ---
-        function handleEditorAction(event) {
-            const rect = editorCanvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            const gridX = Math.floor(mouseX / GRID_SIZE) * GRID_SIZE;
-            const gridY = Math.floor(mouseY / GRID_SIZE) * GRID_SIZE;
-            
-            // Do nothing if cursor is outside the canvas
-            if (gridX < 0 || gridX >= editorCanvas.width || gridY < 0 || gridY >= editorCanvas.height) return;
-            
-            let changed = false;
-
-            if (selectedTool === 'wall') {
-                // To prevent flicker, only add a wall if one isn't already there.
-                if (!levelObjects.some(obj => obj.x === gridX && obj.y === gridY)) {
-                    if (playerStart.x === gridX && playerStart.y === gridY) playerStart = {x: -1, y: -1};
-                    if (goalPos.x === gridX && goalPos.y === gridY) goalPos = {x: -1, y: -1};
-                    levelObjects.push({ x: gridX, y: gridY });
-                    changed = true;
-                }
-            } else {
-                // For other tools (erase, player, goal), always clear the spot first.
-                const originalLength = levelObjects.length;
-                levelObjects = levelObjects.filter(obj => obj.x !== gridX || obj.y !== gridY);
-                if (originalLength !== levelObjects.length) changed = true;
-                
-                if (playerStart.x === gridX && playerStart.y === gridY) {
-                     playerStart = {x: -1, y: -1};
-                     changed = true;
-                }
-                if (goalPos.x === gridX && goalPos.y === gridY) {
-                    goalPos = {x: -1, y: -1};
-                    changed = true;
-                }
-
-                if (selectedTool === 'player') {
-                    playerStart = { x: gridX, y: gridY };
-                } else if (selectedTool === 'goal') {
-                    goalPos = { x: gridX, y: gridY };
-                }
-            }
-            
-            // Only redraw the canvas if something actually changed
-            if(changed) {
-                drawEditor();
-            }
-        }
-
-        editorCanvas.addEventListener('mousedown', (e) => {
-            isPainting = true;
-            handleEditorAction(e);
-        });
-        editorCanvas.addEventListener('mousemove', (e) => {
-            if (isPainting) {
-                handleEditorAction(e);
-            }
-        });
-        window.addEventListener('mouseup', () => {
-            isPainting = false;
-        });
-        editorCanvas.addEventListener('mouseleave', () => {
-            isPainting = false;
-        });
-
-        // --- Key Export/Import Logic ---
-        function exportLevelKey() {
-            if (playerStart.x === -1 || goalPos.x === -1) {
-                alert("Please place a Player Start and a Goal before exporting.");
+    // --- KEY IMPORT / EXPORT ---
+    function exportPlaylistKey() {
+        if (currentEditingLevelIndex > -1) saveCurrentLevel();
+        for(let i = 0; i < editorPlaylist.levels.length; i++) {
+            const level = editorPlaylist.levels[i];
+            if (level.p[0] === -1 || level.g[0] === -1) {
+                alert(`Level ${i + 1} is incomplete! It needs a Player Start and a Goal.`);
                 return;
             }
-            const data = {
-                p: [playerStart.x / GRID_SIZE, playerStart.y / GRID_SIZE],
-                g: [goalPos.x / GRID_SIZE, goalPos.y / GRID_SIZE],
-                w: levelObjects.map(obj => [obj.x / GRID_SIZE, obj.y / GRID_SIZE])
-            };
-            const jsonString = JSON.stringify(data);
-            const base64Key = btoa(jsonString);
-            document.getElementById('key-output').textContent = base64Key;
         }
+        const finalObject = { type: "playlist", name: editorPlaylist.name, data: editorPlaylist.levels };
+        keyOutput.textContent = btoa(JSON.stringify(finalObject));
+    }
 
-        function loadLevelFromInput() {
-            const key = document.getElementById('level-key-input').value.trim();
-            if (key) {
-                loadLevel(key);
-            } else {
-                alert("Please paste a level key first.");
-            }
-        }
-        
-        function loadLevel(key) {
-            try {
-                const jsonString = atob(key);
-                const data = JSON.parse(jsonString);
-                playerStart = { x: data.p[0] * GRID_SIZE, y: data.p[1] * GRID_SIZE };
-                goalPos = { x: data.g[0] * GRID_SIZE, y: data.g[1] * GRID_SIZE };
-                levelObjects = data.w.map(pos => ({ x: pos[0] * GRID_SIZE, y: pos[1] * GRID_SIZE }));
-                resetGame();
-                showScreen('game-screen');
-                gameLoop();
-            } catch (error) {
-                alert("Invalid level key. Please check and try again.");
-                console.error("Failed to load level:", error);
-            }
-        }
-
-        // --- Game Logic ---
-        function resetGame() {
-            player.x = playerStart.x + (GRID_SIZE - player.width) / 2;
-            player.y = playerStart.y + (GRID_SIZE - player.height) / 2;
-            player.vx = 0;
-            player.vy = 0;
-            player.onGround = false;
-        }
-
-        function updateGame() {
-            player.vx = 0;
-            if (keys['ArrowLeft'] || keys['a']) player.vx = -MOVE_SPEED;
-            if (keys['ArrowRight'] || keys['d']) player.vx = MOVE_SPEED;
-
-            if ((keys['ArrowUp'] || keys['w'] || keys[' ']) && player.onGround) {
-                player.vy = JUMP_FORCE;
-                player.onGround = false;
-            }
-
-            player.vy += GRAVITY;
-
-            player.x += player.vx;
-            for (const wall of levelObjects) {
-                if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x &&
-                    player.y < wall.y + GRID_SIZE && player.y + player.height > wall.y) {
-                    if (player.vx > 0) player.x = wall.x - player.width;
-                    if (player.vx < 0) player.x = wall.x + GRID_SIZE;
-                }
-            }
-
-            player.y += player.vy;
-            player.onGround = false;
-            for (const wall of levelObjects) {
-                if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x &&
-                    player.y < wall.y + GRID_SIZE && player.y + player.height > wall.y) {
-                    if (player.vy > 0) {
-                        player.y = wall.y - player.height;
-                        player.onGround = true;
-                        player.vy = 0;
-                    }
-                    if (player.vy < 0) {
-                        player.y = wall.y + GRID_SIZE;
-                        player.vy = 0;
-                    }
-                }
-            }
+    function loadKeyFromInput() {
+        try {
+            const key = document.getElementById('key-input').value.trim();
+            const decoded = JSON.parse(atob(key));
             
-            if (player.x < goalPos.x + GRID_SIZE && player.x + player.width > goalPos.x &&
-                player.y < goalPos.y + GRID_SIZE && player.y + player.height > goalPos.y) {
-                alert("You win! 🎉");
-                showScreen('main-menu');
+            if (decoded.type === 'playlist') { // It's a playlist
+                currentPlaylist = { name: decoded.name, levels: decoded.data };
+                displayLevelSelector();
+            } else { // Assume it's an old single-level key
+                currentPlaylist = { name: "Single Level", levels: [decoded] };
+                startLevel(0);
             }
-
-            if (player.y > canvas.height) {
-                resetGame();
-            }
+        } catch (e) {
+            alert("Invalid key!");
+            console.error(e);
         }
+    }
+    
+    // --- LEVEL SELECTOR & GAME FLOW ---
+    function displayLevelSelector() {
+        const grid = document.getElementById('level-selector-grid');
+        document.getElementById('playlist-title').textContent = currentPlaylist.name;
+        grid.innerHTML = '';
+        currentPlaylist.levels.forEach((level, index) => {
+            const button = document.createElement('button');
+            button.textContent = `Level ${index + 1}`;
+            button.onclick = () => startLevel(index);
+            grid.appendChild(button);
+        });
+        showScreen('level-selector-screen');
+    }
 
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#8B4513';
-            levelObjects.forEach(obj => {
-                ctx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE);
-            });
-            ctx.font = `${GRID_SIZE}px sans-serif`;
-            ctx.fillText('🏆', goalPos.x, goalPos.y + GRID_SIZE - 5);
-            ctx.fillStyle = '#0096FF';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-        }
-
-        function gameLoop() {
-            if (currentScreen !== 'game-screen') return;
-            updateGame();
-            drawGame();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // --- Event Listeners ---
-        window.addEventListener('keydown', (e) => keys[e.key] = true);
+    function startLevel(index) {
+        currentLevelIndex = index;
+        const levelData = currentPlaylist.levels[index];
         
-        window.addEventListener('keyup', (e) => {
-            keys[e.key] = false;
-            if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && player.vy < 0) {
-                player.vy *= 0.5;
-            }
-        });
+        gamePlayerStart = { x: levelData.p[0] * GRID_SIZE, y: levelData.p[1] * GRID_SIZE };
+        gameGoalPos = { x: levelData.g[0] * GRID_SIZE, y: levelData.g[1] * GRID_SIZE };
+        gameObjects = levelData.w.map(pos => ({ x: pos[0] * GRID_SIZE, y: pos[1] * GRID_SIZE }));
+        
+        document.getElementById('game-level-title').textContent = `${currentPlaylist.name} - Level ${index + 1}`;
+        resetGame();
+        showScreen('game-screen');
+        gameLoop();
+    }
 
-        window.addEventListener('blur', () => {
-            for (const key in keys) {
-                keys[key] = false;
-            }
-        });
+    function onLevelComplete() {
+        currentLevelIndex++;
+        if (currentLevelIndex < currentPlaylist.levels.length) {
+            startLevel(currentLevelIndex);
+        } else {
+            alert(`🎉 Playlist Complete! You beat ${currentPlaylist.name}! 🎉`);
+            displayLevelSelector();
+        }
+    }
 
-        // --- Initial Load ---
-        showScreen('main-menu');
+    // --- GAME LOGIC ---
+    function resetGame() {
+        player.x = gamePlayerStart.x + (GRID_SIZE - player.width) / 2;
+        player.y = gamePlayerStart.y + (GRID_SIZE - player.height) / 2;
+        player.vx = 0; player.vy = 0; player.onGround = false;
+    }
+
+    function updateGame() {
+        // Movement
+        player.vx = 0;
+        if (keys['ArrowLeft'] || keys['a']) player.vx = -MOVE_SPEED;
+        if (keys['ArrowRight'] || keys['d']) player.vx = MOVE_SPEED;
+        if ((keys['ArrowUp'] || keys['w'] || keys[' ']) && player.onGround) { player.vy = JUMP_FORCE; player.onGround = false; }
+        player.vy += GRAVITY;
+
+        // X Collision
+        player.x += player.vx;
+        for (const wall of gameObjects) {
+            if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x && player.y < wall.y + GRID_SIZE && player.y + player.height > wall.y) {
+                if (player.vx > 0) player.x = wall.x - player.width;
+                if (player.vx < 0) player.x = wall.x + GRID_SIZE;
+            }
+        }
+        // Y Collision
+        player.y += player.vy;
+        player.onGround = false;
+        for (const wall of gameObjects) {
+            if (player.x < wall.x + GRID_SIZE && player.x + player.width > wall.x && player.y < wall.y + GRID_SIZE && player.y + player.height > wall.y) {
+                if (player.vy > 0) { player.y = wall.y - player.height; player.onGround = true; player.vy = 0; }
+                if (player.vy < 0) { player.y = wall.y + GRID_SIZE; player.vy = 0; }
+            }
+        }
+        // Goal Check
+        if (player.x < gameGoalPos.x + GRID_SIZE && player.x + player.width > gameGoalPos.x && player.y < gameGoalPos.y + GRID_SIZE && player.y + player.height > gameGoalPos.y) {
+            onLevelComplete();
+        }
+        // Fall out of world
+        if (player.y > gameCanvas.height) resetGame();
+    }
+
+    function drawGame() {
+        gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+        gameCtx.fillStyle = '#8B4513';
+        gameObjects.forEach(obj => gameCtx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE));
+        gameCtx.font = `${GRID_SIZE}px sans-serif`;
+        gameCtx.fillText('🏆', gameGoalPos.x, gameGoalPos.y + GRID_SIZE - 5);
+        gameCtx.fillStyle = '#0096FF';
+        gameCtx.fillRect(player.x, player.y, player.width, player.height);
+    }
+    
+    let animationFrameId;
+    function gameLoop() {
+        if (currentScreen !== 'game-screen') {
+            cancelAnimationFrame(animationFrameId);
+            return;
+        }
+        updateGame();
+        drawGame();
+        animationFrameId = requestAnimationFrame(gameLoop);
+    }
+    
+    // --- EVENT LISTENERS ---
+    window.addEventListener('keydown', (e) => keys[e.key] = true);
+    window.addEventListener('keyup', (e) => {
+        keys[e.key] = false;
+        if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && player.vy < 0) { player.vy *= 0.5; }
+    });
+    window.addEventListener('blur', () => { for (const key in keys) { keys[key] = false; } });
+    
+    // --- INITIAL LOAD ---
+    showScreen('main-menu');
     </script>
 </body>
 </html>
