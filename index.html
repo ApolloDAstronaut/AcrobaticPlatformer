@@ -11,6 +11,11 @@
             --medium-bg: #2a2a2a;
             --dark-border: #555;
             --text-color: #f0f0f0;
+            --game-bg-color: #ffffff; /* New: White background for game levels */
+            --platform-color: #000000; /* New: Black platforms */
+            --player-color: #0096FF; /* Player color */
+            --goal-color: #FFD700; /* New: Yellow goal */
+            --grid-color: #cccccc; /* New: Gray grid */
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -18,12 +23,14 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden;
         }
         canvas {
-            background-color: #0d0d0d; border: 2px solid var(--dark-border); cursor: crosshair;
+            border: 2px solid var(--dark-border); cursor: crosshair;
         }
+        /* Screens */
         .screen {
             display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;
         }
         .screen.active { display: flex; }
+
         h1, h2 { color: var(--primary-color); text-shadow: 2px 2px #000; }
         button, input {
             padding: 12px 20px; margin: 8px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;
@@ -33,18 +40,113 @@
         input[type="text"] {
             width: 90%; background-color: #333; border: 2px solid var(--dark-border);
         }
-        #editor-container { display: flex; gap: 20px; align-items: flex-start; }
-        #playlist-controls { background-color: var(--medium-bg); padding: 15px; border-radius: 8px; width: 250px; text-align: center; }
-        #playlist-levels-list { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; text-align: left;}
+
+        /* Editor Screen Layout */
+        #editor-screen {
+            display: none; /* Hide by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align content to top of screen */
+            padding-top: 20px;
+        }
+        #editor-screen.active {
+            display: flex;
+        }
+        #editor-container { 
+            display: flex; 
+            gap: 20px; 
+            align-items: flex-start; 
+            margin-top: 20px; /* Space from h1 */
+        }
+        #editor-main-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #playlist-controls { 
+            background-color: var(--medium-bg); padding: 15px; border-radius: 8px; width: 250px; text-align: center;
+        }
+        #playlist-levels-list { 
+            list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; text-align: left;
+        }
         #playlist-levels-list li {
             padding: 10px; margin-bottom: 5px; background: #333; border-radius: 4px; cursor: pointer;
             border-left: 4px solid transparent;
         }
         #playlist-levels-list li.selected { border-left-color: var(--primary-color); background: #444; }
-        #editor-ui { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
-        #editor-ui .tool { padding: 10px; margin: 5px; border: 2px solid var(--dark-border); border-radius: 5px; cursor: pointer; }
+
+        /* Editor Tools */
+        #editor-tools-panel { /* New container for tools */
+            background-color: var(--medium-bg);
+            padding: 15px;
+            border-radius: 8px;
+            width: 150px; /* Adjust width as needed */
+            display: flex;
+            flex-direction: column; /* Stack tools vertically */
+            align-items: center;
+        }
+        #editor-tools-panel span {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        #editor-ui .tool { 
+            padding: 10px; margin: 5px; border: 2px solid var(--dark-border); border-radius: 5px; cursor: pointer; 
+            width: 80%; /* Make tools fill panel width */
+        }
         #editor-ui .tool.selected { background-color: var(--primary-color); border-color: #fff; }
-        #key-output { margin-top: 15px; width: 80%; max-width: 800px; padding: 10px; background: #222; border: 1px solid #444; word-wrap: break-word; min-height: 20px; font-family: 'Courier New', monospace; }
+        #editor-bottom-bar {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #key-output { 
+            margin-top: 15px; width: 80%; max-width: 800px; padding: 10px; background: #222; border: 1px solid #444; word-wrap: break-word; min-height: 20px; font-family: 'Courier New', monospace; 
+        }
+
+        /* Game Screen Layout (Full screen canvas, bottom bar) */
+        #game-screen {
+            display: none; /* Hidden by default */
+            position: relative; /* For absolute positioning of game-ui-bar */
+            width: 100vw; /* Fill viewport width */
+            height: 100vh; /* Fill viewport height */
+            background-color: var(--dark-bg); /* Background for the screen itself */
+            overflow: hidden; /* Hide scrollbars if canvas is slightly larger */
+        }
+        #game-screen.active {
+            display: flex; /* Show the game screen */
+            flex-direction: column; /* Arrange content vertically */
+            justify-content: space-between; /* Push canvas to top, ui to bottom */
+            align-items: center; /* Center horizontally */
+        }
+        #game-canvas {
+            background-color: var(--game-bg-color); /* White background for the game level */
+            flex-grow: 1; /* Allow canvas to grow and take available space */
+            width: 100%; /* Will be overridden by JS for aspect ratio */
+            height: 100%; /* Will be overridden by JS for aspect ratio */
+            border: none; /* No border for full screen immersion */
+            display: block; /* Remove extra space below canvas */
+        }
+        #game-ui-bar {
+            background-color: var(--medium-bg);
+            width: 100%;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: relative; /* To be at the bottom */
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+            min-height: 60px; /* Ensure button fits */
+        }
+        #game-ui-bar h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        #game-ui-bar button {
+            margin: 0 15px; /* Adjust button margins */
+        }
+
+
+        /* Level Selector Grid */
         #level-selector-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
     </style>
 </head>
@@ -58,6 +160,7 @@
     </div>
 
     <div id="editor-screen" class="screen">
+        <h1>Level Editor</h1>
         <div id="editor-container">
             <div id="playlist-controls">
                 <h2>Playlist Editor</h2>
@@ -69,22 +172,21 @@
                 <hr style="border-color: var(--dark-border); margin: 20px 0;">
                 <input type="text" id="playlist-key-importer" placeholder="Paste Playlist Key...">
                 <button onclick="importPlaylistToEditor()">Load Key to Editor</button>
-
             </div>
-            <div>
+            <div id="editor-main-area">
                 <canvas id="editor-canvas" width="800" height="480"></canvas>
-                <div id="editor-ui">
-                    <span>Tools:</span>
-                    <div class="tool selected" id="tool-wall" onclick="selectTool('wall')">🧱 Wall</div>
-                    <div class="tool" id="tool-player" onclick="selectTool('player')">👤 Player</div>
-                    <div class="tool" id="tool-goal" onclick="selectTool('goal')">🏆 Goal</div>
-                    <div class="tool" id="tool-erase" onclick="selectTool('erase')">❌ Erase</div>
+                <div id="editor-bottom-bar">
+                    <button onclick="exportPlaylistKey()">Export Playlist Key</button>
+                    <button onclick="showScreen('main-menu')">Back to Menu</button>
                 </div>
+                <div id="key-output"></div>
+            </div>
+            <div id="editor-tools-panel"> <span>Tools:</span>
+                <div class="tool selected" id="tool-wall" onclick="selectTool('wall')">🧱 Wall</div>
+                <div class="tool" id="tool-player" onclick="selectTool('player')">👤 Player</div>
+                <div class="tool" id="tool-goal" onclick="selectTool('goal')">⭐ Goal</div> <div class="tool" id="tool-erase" onclick="selectTool('erase')">❌ Erase</div>
             </div>
         </div>
-        <button onclick="exportPlaylistKey()">Export Playlist Key</button>
-        <button onclick="showScreen('main-menu')">Back to Menu</button>
-        <div id="key-output"></div>
     </div>
 
     <div id="level-selector-screen" class="screen">
@@ -94,24 +196,34 @@
     </div>
 
     <div id="game-screen" class="screen">
-        <h2 id="game-level-title"></h2>
-        <canvas id="game-canvas" width="800" height="480"></canvas>
-        <p>Use Arrow Keys or WASD to move. Hold jump for more height. Reach the trophy! 🏆</p>
-        <button onclick="showScreen('level-selector-screen')">Back to Level Select</button>
+        <canvas id="game-canvas"></canvas>
+        <div id="game-ui-bar">
+            <h2 id="game-level-title"></h2>
+            <p style="margin:0; font-size: 0.9em; color: #bbb;">Use Arrow Keys/WASD to move. Hold jump for height.</p>
+            <button onclick="showScreen('level-selector-screen')">Back to Level Select</button>
+        </div>
     </div>
 
     <script>
     // --- CONFIG ---
-    // ✨ Grid size is now even smaller for maximum detail. Physics values are scaled to match.
-    const GRID_SIZE = 10;
-    const GRAVITY = 0.125;
-    const JUMP_FORCE = -3;
-    const MOVE_SPEED = 1.25;
+    // Grid size is now even smaller for maximum detail. Physics values are scaled to match.
+    const GRID_SIZE = 5; // Each grid cell is 5x5 pixels
+    const GRAVITY = 0.0625; // Scaled (0.5 / 8)
+    const JUMP_FORCE = -1.5; // Scaled (-12 / 8)
+    const MOVE_SPEED = 0.625; // Scaled (5 / 8)
+
+    // Editor canvas fixed size
+    const EDITOR_CANVAS_WIDTH = 800;
+    const EDITOR_CANVAS_HEIGHT = 480;
 
     // --- DOM ELEMENTS ---
     const editorCanvas = document.getElementById('editor-canvas'), editorCtx = editorCanvas.getContext('2d');
     const gameCanvas = document.getElementById('game-canvas'), gameCtx = gameCanvas.getContext('2d');
     const keyOutput = document.getElementById('key-output');
+
+    // Set fixed size for editor canvas
+    editorCanvas.width = EDITOR_CANVAS_WIDTH;
+    editorCanvas.height = EDITOR_CANVAS_HEIGHT;
 
     // --- STATE ---
     let currentScreen = 'main-menu', selectedTool = 'wall', isPainting = false;
@@ -132,6 +244,13 @@
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
         currentScreen = screenId;
+
+        // Special handling for game screen resize
+        if (screenId === 'game-screen') {
+            resizeGameCanvas();
+        } else if (screenId === 'editor-screen') {
+            drawEditor(); // Ensure editor is drawn when returning
+        }
     }
 
     // --- EDITOR LOGIC ---
@@ -194,8 +313,12 @@
 
     function drawEditor() {
         editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+        editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-bg-color');
+        editorCtx.fillRect(0, 0, editorCanvas.width, editorCanvas.height);
+
         // Draw Grid
-        editorCtx.strokeStyle = '#404040'; editorCtx.lineWidth = 0.5;
+        editorCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-color');
+        editorCtx.lineWidth = 0.5;
         for (let x = 0; x < editorCanvas.width; x += GRID_SIZE) { editorCtx.beginPath(); editorCtx.moveTo(x, 0); editorCtx.lineTo(x, editorCanvas.height); editorCtx.stroke(); }
         for (let y = 0; y < editorCanvas.height; y += GRID_SIZE) { editorCtx.beginPath(); editorCtx.moveTo(0, y); editorCtx.lineTo(editorCanvas.width, y); editorCtx.stroke(); }
         editorCtx.lineWidth = 1;
@@ -203,16 +326,17 @@
         // Draw Objects from current level
         if (currentEditingLevelIndex < 0) return;
         const level = editorPlaylist.levels[currentEditingLevelIndex];
-        editorCtx.fillStyle = '#8B4513';
+        
+        editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--platform-color');
         level.w.forEach(pos => editorCtx.fillRect(pos[0] * GRID_SIZE, pos[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE));
         
         if (level.p[0] !== -1) {
-            editorCtx.fillStyle = 'rgba(0, 150, 255, 0.8)';
+            editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--player-color');
             editorCtx.fillRect(level.p[0] * GRID_SIZE, level.p[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE);
         }
         if (level.g[0] !== -1) {
-            editorCtx.font = `${GRID_SIZE}px sans-serif`;
-            editorCtx.fillText('🏆', level.g[0] * GRID_SIZE, level.g[1] * GRID_SIZE + GRID_SIZE - 5);
+            editorCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
+            drawStar(editorCtx, level.g[0] * GRID_SIZE + GRID_SIZE / 2, level.g[1] * GRID_SIZE + GRID_SIZE / 2, GRID_SIZE / 2 * 0.9, 5);
         }
     }
 
@@ -381,14 +505,44 @@
 
     function drawGame() {
         gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-        gameCtx.fillStyle = '#8B4513';
+        gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-bg-color');
+        gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--platform-color');
         gameObjects.forEach(obj => gameCtx.fillRect(obj.x, obj.y, GRID_SIZE, GRID_SIZE));
-        gameCtx.font = `${GRID_SIZE}px sans-serif`;
-        gameCtx.fillText('🏆', gameGoalPos.x, gameGoalPos.y + GRID_SIZE - 5);
-        gameCtx.fillStyle = '#0096FF';
+        
+        gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--goal-color');
+        drawStar(gameCtx, gameGoalPos.x + GRID_SIZE / 2, gameGoalPos.y + GRID_SIZE / 2, GRID_SIZE / 2 * 0.9, 5);
+
+        gameCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--player-color');
         gameCtx.fillRect(player.x, player.y, player.width, player.height);
     }
     
+    // Utility function to draw a star
+    function drawStar(ctx, cx, cy, outerRadius, spikes, innerRadius = outerRadius * 0.4) {
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        let step = Math.PI / spikes;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+            x = cx + Math.cos(rot) * outerRadius;
+            y = cy + Math.sin(rot) * outerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+
+            x = cx + Math.cos(rot) * innerRadius;
+            y = cy + Math.sin(rot) * innerRadius;
+            ctx.lineTo(x, y);
+            rot += step;
+        }
+        ctx.lineTo(cx, cy - outerRadius);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     let animationFrameId;
     function gameLoop() {
         if (currentScreen !== 'game-screen') {
@@ -399,6 +553,40 @@
         drawGame();
         animationFrameId = requestAnimationFrame(gameLoop);
     }
+
+    // --- Dynamic Game Canvas Resizing ---
+    function resizeGameCanvas() {
+        if (currentScreen !== 'game-screen') return;
+
+        const gameScreen = document.getElementById('game-screen');
+        const gameUiBar = document.getElementById('game-ui-bar');
+        
+        const availableHeight = gameScreen.clientHeight - gameUiBar.offsetHeight;
+        const availableWidth = gameScreen.clientWidth;
+
+        // Maintain a desired aspect ratio (e.g., 800x480 for the editor)
+        const aspectRatio = EDITOR_CANVAS_WIDTH / EDITOR_CANVAS_HEIGHT;
+
+        let newWidth = availableWidth;
+        let newHeight = availableWidth / aspectRatio;
+
+        if (newHeight > availableHeight) {
+            newHeight = availableHeight;
+            newWidth = availableHeight * aspectRatio;
+        }
+
+        // Round to nearest GRID_SIZE multiple
+        gameCanvas.width = Math.floor(newWidth / GRID_SIZE) * GRID_SIZE;
+        gameCanvas.height = Math.floor(newHeight / GRID_SIZE) * GRID_SIZE;
+
+        // Ensure player and goal positions are valid for new canvas size
+        // This is simplified; a robust solution might involve recentering or clamping
+        if (gamePlayerStart.x >= gameCanvas.width || gamePlayerStart.y >= gameCanvas.height) {
+            resetGame(); // Reset if player start becomes invalid
+        }
+        drawGame(); // Redraw immediately after resize
+    }
+    window.addEventListener('resize', resizeGameCanvas);
     
     // --- EVENT LISTENERS ---
     window.addEventListener('keydown', (e) => keys[e.key] = true);
